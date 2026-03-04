@@ -47,11 +47,26 @@ export interface Character {
   direction: 'left' | 'right';
   path: Array<{ x: number; y: number }>;
   pathIndex: number;
+  paletteIndex: number;
 }
 
 // ── Office layout ────────────────────────────────────────────────────
 
-export type TileType = 'floor' | 'wall' | 'desk' | 'chair' | 'plant' | 'computer';
+export type TileType =
+  | 'floor'
+  | 'wall'
+  | 'desk'
+  | 'chair'
+  | 'plant'
+  | 'computer'
+  | 'window'
+  | 'whiteboard'
+  | 'bookshelf'
+  | 'coffee_machine'
+  | 'water_cooler'
+  | 'clock'
+  | 'rug'
+  | 'door';
 
 export interface Tile {
   type: TileType;

@@ -23,6 +23,9 @@
     "ai-agent",
     "devbuddies"
   ],
+  "enabledApiProposals": [
+    "terminalDataWriteEvent"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {

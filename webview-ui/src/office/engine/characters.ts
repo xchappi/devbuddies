@@ -1,21 +1,25 @@
 import type { Character, CharacterState, ActivityType } from '../../types';
 import { findPath } from './pathfinding';
+import { getPaletteIndex } from './characterPalettes';
 
 const WALK_SPEED = 2.5; // tiles per second
-const ANIM_FRAME_MS = 200;
+const ANIM_FRAME_MS = 150;
 const TILE_SIZE = 16;
+const ANIM_FRAMES = 8;
 
-/** Spawn position (entrance, bottom-center of office) */
-const ENTRANCE = { x: 8, y: 10 };
+/** Spawn position (entrance — door at bottom-center) */
+const ENTRANCE = { x: 10, y: 12 };
 
 /** Desk positions (must match extension constants) */
 const DESK_POSITIONS = [
   { x: 4, y: 3 },
   { x: 8, y: 3 },
   { x: 12, y: 3 },
-  { x: 4, y: 7 },
-  { x: 8, y: 7 },
-  { x: 12, y: 7 },
+  { x: 16, y: 3 },
+  { x: 4, y: 8 },
+  { x: 8, y: 8 },
+  { x: 12, y: 8 },
+  { x: 16, y: 8 },
 ] as const;
 
 /** Create a new character at the entrance */
@@ -40,6 +44,7 @@ export function createCharacter(id: string, deskIndex: number): Character {
     direction: targetX < ENTRANCE.x ? 'left' : 'right',
     path: path.map(p => ({ x: p.x * TILE_SIZE, y: p.y * TILE_SIZE })),
     pathIndex: 0,
+    paletteIndex: getPaletteIndex(id),
   };
 }
 
@@ -74,7 +79,7 @@ export function tickCharacter(char: Character, deltaMs: number): boolean {
   char.animTimer += deltaMs;
   if (char.animTimer >= ANIM_FRAME_MS) {
     char.animTimer -= ANIM_FRAME_MS;
-    char.animFrame = (char.animFrame + 1) % 4;
+    char.animFrame = (char.animFrame + 1) % ANIM_FRAMES;
   }
 
   if (char.state === 'walking') {

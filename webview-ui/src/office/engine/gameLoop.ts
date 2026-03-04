@@ -10,6 +10,8 @@ export class GameLoop {
   private rafId = 0;
   private lastTime = 0;
   private accumulator = 0;
+  /** Elapsed time in ms since start — passed to renderer for ambient animations */
+  private elapsedMs = 0;
 
   constructor(
     private state: OfficeState,
@@ -43,6 +45,7 @@ export class GameLoop {
     if (delta > MAX_DELTA_MS) delta = MAX_DELTA_MS;
 
     this.accumulator += delta;
+    this.elapsedMs += delta;
 
     // Fixed timestep at target FPS
     while (this.accumulator >= FRAME_MS) {
@@ -50,6 +53,14 @@ export class GameLoop {
       this.accumulator -= FRAME_MS;
     }
 
-    this.renderer.draw(this.state.getCharacters());
+    // Interpolation alpha for smooth rendering between fixed steps
+    const alpha = this.accumulator / FRAME_MS;
+
+    this.renderer.draw(
+      this.state.getCharacters(),
+      this.state.particles,
+      this.elapsedMs,
+      alpha,
+    );
   };
 }

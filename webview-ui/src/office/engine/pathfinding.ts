@@ -5,8 +5,8 @@ interface Point {
   y: number;
 }
 
-const COLS = 16;
-const ROWS = 12;
+const COLS = 20;
+const ROWS = 14;
 const DIRS: Point[] = [
   { x: 0, y: -1 },
   { x: 0, y: 1 },

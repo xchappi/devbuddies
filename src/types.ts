@@ -13,6 +13,8 @@ export interface RawEvent {
   timestamp: number;
   uri?: string;
   content?: string;
+  /** True if the file change happened in a non-active editor (likely agent edit) */
+  isBackground?: boolean;
 }
 
 // ── Heuristic classification ─────────────────────────────────────────

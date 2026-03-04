@@ -1,12 +1,16 @@
 import type { Character, ActivityType } from '../../types';
 import { createCharacter, createLeavingPath, activityToState, tickCharacter } from './characters';
+import { ParticleSystem } from './particles';
+
+const TILE_SIZE = 16;
 
 /**
  * Imperative game state — NOT React state.
- * Manages characters and office simulation.
+ * Manages characters, office simulation, and particle system.
  */
 export class OfficeState {
   characters: Map<string, Character> = new Map();
+  particles: ParticleSystem = new ParticleSystem();
   /** Tracks which desk indices are taken */
   private assignedDesks: Set<number> = new Set();
   /** Characters scheduled for removal after walk-away */
@@ -20,6 +24,9 @@ export class OfficeState {
     const char = createCharacter(id, deskIndex);
     this.characters.set(id, char);
     this.assignedDesks.add(deskIndex);
+
+    // Spawn sparkle at entrance
+    this.particles.emit('session_start', char.x + 8, char.y + 8);
   }
 
   /** Remove a character with walk-away animation (session ended) */
@@ -29,6 +36,9 @@ export class OfficeState {
 
     this.leaving.add(id);
     this.assignedDesks.delete(char.deskIndex);
+
+    // Fade puff at desk
+    this.particles.emit('session_end', char.x + 8, char.y + 8);
     createLeavingPath(char);
   }
 
@@ -50,8 +60,22 @@ export class OfficeState {
       if (shouldRemove) {
         this.characters.delete(id);
         this.leaving.delete(id);
+        continue;
+      }
+
+      // Emit state-based particles
+      if (char.state === 'typing' && Math.random() < 0.15) {
+        this.particles.emit('typing', char.x + 8, char.y);
+      }
+      if (char.state === 'executing' && Math.random() < 0.2) {
+        this.particles.emit('executing', char.x + 8, char.y + 8);
+      }
+      if (char.state === 'celebrating' && Math.random() < 0.25) {
+        this.particles.emit('celebrating', char.x + 8, char.y);
       }
     }
+
+    this.particles.tick(deltaMs);
   }
 
   /** Get all characters as an array (for rendering) */
@@ -60,10 +84,10 @@ export class OfficeState {
   }
 
   private findFreeDesk(): number {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       if (!this.assignedDesks.has(i)) return i;
     }
     // All desks taken — wrap around
-    return this.characters.size % 6;
+    return this.characters.size % 8;
   }
 }

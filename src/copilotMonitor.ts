@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { RawEvent } from './types';
-import { CHAT_POLL_INTERVAL_MS, CHAT_SESSION_GLOB } from './constants';
+import { CHAT_POLL_INTERVAL_MS } from './constants';
 
 export type RawEventListener = (event: RawEvent) => void;
 
@@ -9,23 +9,21 @@ export class CopilotMonitor implements vscode.Disposable {
   private readonly listeners: RawEventListener[] = [];
   private chatPollTimer: ReturnType<typeof setInterval> | undefined;
   private knownChatFiles = new Set<string>();
+  /** URI of the currently active text editor — used to distinguish user edits from agent edits */
+  private activeEditorUri: string | undefined;
 
   start(): void {
-    // Terminal output detection (proposed API — may not be available)
-    const windowAny = vscode.window as any;
-    if (typeof windowAny.onDidWriteTerminalData === 'function') {
-      this.disposables.push(
-        windowAny.onDidWriteTerminalData((e: { data: string }) => {
-          this.emit({
-            type: 'terminal_output',
-            timestamp: Date.now(),
-            content: e.data,
-          });
-        }),
-      );
-    }
+    // Track the active editor so we can distinguish user edits from agent edits
+    this.activeEditorUri = vscode.window.activeTextEditor?.document.uri.toString();
+    this.disposables.push(
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        this.activeEditorUri = editor?.document.uri.toString();
+      }),
+    );
 
-    // Fallback: detect terminal shell execution start/end
+    // ── Terminal shell execution (command-level, not keystroke-level) ──
+    // These fire only when actual commands execute, not on every keypress.
+    // Useful for detecting Copilot Agent running terminal commands.
     if (vscode.window.onDidStartTerminalShellExecution) {
       this.disposables.push(
         vscode.window.onDidStartTerminalShellExecution(() => {
@@ -49,15 +47,26 @@ export class CopilotMonitor implements vscode.Disposable {
       );
     }
 
-    // File edit detection
+    // NOTE: We intentionally do NOT use onDidWriteTerminalData.
+    // That API fires on every character written to any terminal (including user keystrokes),
+    // which causes massive false positives. Shell execution events above are sufficient.
+
+    // ── File edit detection ──
+    // Key insight: when Copilot Agent edits files, those files are usually
+    // NOT the user's active editor. We tag these as "background" edits.
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => {
         if (e.document.uri.scheme !== 'file') return;
         if (e.contentChanges.length === 0) return;
+
+        const changedUri = e.document.uri.toString();
+        const isBackground = changedUri !== this.activeEditorUri;
+
         this.emit({
           type: 'file_change',
           timestamp: Date.now(),
-          uri: e.document.uri.toString(),
+          uri: changedUri,
+          isBackground,
         });
       }),
     );
@@ -88,7 +97,7 @@ export class CopilotMonitor implements vscode.Disposable {
       }),
     );
 
-    // Chat session file polling
+    // Chat session file polling (watches Copilot workspace storage)
     this.startChatPolling();
   }
 
@@ -110,7 +119,8 @@ export class CopilotMonitor implements vscode.Disposable {
 
   private async pollChatSessions(): Promise<void> {
     try {
-      const files = await vscode.workspace.findFiles(CHAT_SESSION_GLOB, null, 100);
+      // Search for Copilot chat session files in workspace
+      const files = await vscode.workspace.findFiles('**/chatSessions/**', null, 100);
       for (const file of files) {
         const key = file.toString();
         if (!this.knownChatFiles.has(key)) {

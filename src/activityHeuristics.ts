@@ -1,8 +1,9 @@
-import { RawEvent, ClassifiedEvent, ActivityType, Confidence } from './types';
+import { RawEvent, ClassifiedEvent, Confidence } from './types';
 import { BURST_WINDOW_MS, BURST_MIN_FILES } from './constants';
 
 export class ActivityHeuristics {
   private recentFileChanges: RawEvent[] = [];
+  private recentBackgroundChanges: RawEvent[] = [];
 
   classify(event: RawEvent): ClassifiedEvent {
     switch (event.type) {
@@ -35,10 +36,13 @@ export class ActivityHeuristics {
   }
 
   private classifyTerminal(event: RawEvent): ClassifiedEvent {
+    // Shell execution events (command-level, not keystrokes).
+    // Medium confidence: could be user running commands or Copilot Agent.
+    // Combined with background file edits, this builds a stronger signal.
     return {
       type: 'executing',
-      confidence: 'high',
-      evidence: 'Terminal output detected without user input',
+      confidence: 'medium',
+      evidence: 'Shell execution detected',
       timestamp: event.timestamp,
       rawEvents: [event],
     };
@@ -47,13 +51,12 @@ export class ActivityHeuristics {
   private classifyFileChange(event: RawEvent): ClassifiedEvent {
     const now = event.timestamp;
 
-    // Add to recent changes, prune old ones
+    // ── Burst detection (multiple files changing rapidly) ──
     this.recentFileChanges.push(event);
     this.recentFileChanges = this.recentFileChanges.filter(
       (e) => now - e.timestamp <= BURST_WINDOW_MS,
     );
 
-    // Count unique files in the burst window
     const uniqueFiles = new Set(this.recentFileChanges.map((e) => e.uri));
 
     if (uniqueFiles.size >= BURST_MIN_FILES) {
@@ -67,10 +70,34 @@ export class ActivityHeuristics {
       };
     }
 
+    // ── Background file change (non-active editor) ──
+    // When a file changes and the user is NOT editing that file,
+    // it's very likely an agent (Copilot) making the edit.
+    if (event.isBackground) {
+      // Track background changes for stronger signal
+      this.recentBackgroundChanges.push(event);
+      this.recentBackgroundChanges = this.recentBackgroundChanges.filter(
+        (e) => now - e.timestamp <= 2000,
+      );
+
+      const bgCount = this.recentBackgroundChanges.length;
+      const confidence: Confidence = bgCount >= 3 ? 'high' : 'medium';
+
+      return {
+        type: 'coding',
+        confidence,
+        evidence: `Background edit in ${event.uri?.split('/').pop() ?? 'file'} (${bgCount} recent bg edits)`,
+        timestamp: now,
+        rawEvents: [event],
+      };
+    }
+
+    // ── Active file change (user's current editor) ──
+    // Low confidence — likely the user typing, not an agent.
     return {
       type: 'coding',
       confidence: 'low',
-      evidence: 'Single file edit (may be user)',
+      evidence: 'Active file edit (likely user)',
       timestamp: now,
       rawEvents: [event],
     };

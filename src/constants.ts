@@ -29,8 +29,8 @@ export const CHAT_SESSION_GLOB = '**/chatSessions/**';
 export const TILE_SIZE = 16;
 
 /** Office grid dimensions (tiles) */
-export const OFFICE_COLS = 16;
-export const OFFICE_ROWS = 12;
+export const OFFICE_COLS = 20;
+export const OFFICE_ROWS = 14;
 
 /** Target game loop FPS */
 export const TARGET_FPS = 30;
@@ -44,7 +44,7 @@ export const MAX_DELTA_MS = 100;
 export const WALK_SPEED = 2.5;
 
 /** Animation frame duration in ms */
-export const ANIM_FRAME_MS = 200;
+export const ANIM_FRAME_MS = 150;
 
 /** Sprite dimensions in source pixels */
 export const CHAR_WIDTH = 16;
@@ -56,9 +56,11 @@ export const DESK_POSITIONS = [
   { x: 4, y: 3 },
   { x: 8, y: 3 },
   { x: 12, y: 3 },
-  { x: 4, y: 7 },
-  { x: 8, y: 7 },
-  { x: 12, y: 7 },
+  { x: 16, y: 3 },
+  { x: 4, y: 8 },
+  { x: 8, y: 8 },
+  { x: 12, y: 8 },
+  { x: 16, y: 8 },
 ] as const;
 
 // ── Storage keys ─────────────────────────────────────────────────────
