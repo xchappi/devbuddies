@@ -1,0 +1,104 @@
+{
+  "name": "devbuddies",
+  "displayName": "DevBuddies",
+  "description": "Visualize GitHub Copilot Agent activity as pixel art characters in a virtual office",
+  "version": "0.1.0",
+  "publisher": "castorlabs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xchappi/devbuddies"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "pixel-art",
+    "visualization",
+    "ai-agent",
+    "devbuddies"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "devbuddies",
+          "title": "DevBuddies",
+          "icon": "assets/sprites/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "devbuddies": [
+        {
+          "type": "webview",
+          "id": "devbuddies.officeView",
+          "name": "Virtual Office"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "devbuddies.togglePanel",
+        "title": "DevBuddies: Toggle Virtual Office"
+      },
+      {
+        "command": "devbuddies.resetStats",
+        "title": "DevBuddies: Reset Statistics"
+      }
+    ],
+    "configuration": {
+      "title": "DevBuddies",
+      "properties": {
+        "devbuddies.soundEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Play notification sounds on session events"
+        },
+        "devbuddies.zoomLevel": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Pixel zoom level (1-4)"
+        },
+        "devbuddies.idleTimeoutSeconds": {
+          "type": "number",
+          "default": 120,
+          "minimum": 30,
+          "maximum": 600,
+          "description": "Seconds of inactivity before ending a session"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "node esbuild.js",
+    "build:webview": "cd webview-ui && npm run build",
+    "watch:extension": "node esbuild.js --watch",
+    "watch:webview": "cd webview-ui && npm run dev",
+    "dev": "concurrently \"npm run watch:extension\" \"npm run watch:webview\"",
+    "type-check": "tsc --noEmit && cd webview-ui && tsc --noEmit",
+    "lint": "eslint src/ --ext .ts",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "concurrently": "^9.0.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0"
+  }
+}
